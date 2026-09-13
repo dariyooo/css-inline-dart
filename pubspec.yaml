@@ -1,6 +1,6 @@
 name: css_inline_dart
 description: "Inline CSS into HTML style attributes, for email and other clients that ignore stylesheets. Native bindings to the Rust css-inline crate."
-version: 0.1.0+0.19.1
+version: 0.0.1+0.19.1
 repository: https://github.com/dariyooo/css-inline-dart
 issue_tracker: https://github.com/dariyooo/css-inline-dart/issues
 topics:
