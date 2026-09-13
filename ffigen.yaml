@@ -1,0 +1,20 @@
+name: RustBindings
+description: Bindings to css_inline_dart
+output: 'lib/src/rust_bindings.g.dart'
+ffi-native:
+  assetId: 'package:css_inline_dart/src/rust_bindings.g.dart'
+headers:
+  entry-points:
+    - 'rust/include/css_inline_dart.h'
+preamble: |
+  // ignore_for_file: camel_case_types, non_constant_identifier_names, avoid_positional_boolean_parameters, annotate_overrides, constant_identifier_names, unused_field, library_private_types_in_public_api
+llvm-path:
+  - '/usr/local/opt/llvm'
+  - '/opt/homebrew/opt/llvm'
+functions:
+  include:
+    - 'inline_css'
+    - 'inline_css_sync'
+    - 'inline_fragment'
+    - 'inline_fragment_sync'
+    - 'free_string'
