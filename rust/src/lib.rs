@@ -21,7 +21,7 @@ thread_local! {
 ///
 /// `options_json` may be null for the defaults.
 #[no_mangle]
-pub extern "C" fn css_inline_document(
+pub unsafe extern "C" fn css_inline_document(
     html: *const c_char,
     options_json: *const c_char,
 ) -> *mut c_char {
@@ -38,7 +38,7 @@ pub extern "C" fn css_inline_document(
 /// Inlines `css` into `html`, which is treated as a fragment rather than a
 /// whole document.
 #[no_mangle]
-pub extern "C" fn css_inline_fragment(
+pub unsafe extern "C" fn css_inline_fragment(
     html: *const c_char,
     css: *const c_char,
     options_json: *const c_char,
@@ -58,7 +58,7 @@ pub extern "C" fn css_inline_fragment(
 ///
 /// Owned by the library and valid until the next call on the same thread.
 #[no_mangle]
-pub extern "C" fn css_inline_last_error() -> *const c_char {
+pub unsafe extern "C" fn css_inline_last_error() -> *const c_char {
     LAST_ERROR.with(|slot| {
         slot.borrow()
             .as_ref()
@@ -68,7 +68,7 @@ pub extern "C" fn css_inline_last_error() -> *const c_char {
 
 /// Frees a string this library returned.
 #[no_mangle]
-pub extern "C" fn css_inline_free_string(ptr: *mut c_char) {
+pub unsafe extern "C" fn css_inline_free_string(ptr: *mut c_char) {
     if ptr.is_null() {
         return;
     }
