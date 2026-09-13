@@ -1,3 +1,8 @@
+/// Inlines CSS into HTML `style` attributes.
+///
+/// Email clients and other readers that ignore stylesheets need every rule on
+/// the element it applies to. This moves them there, through the Rust
+/// [css-inline](https://github.com/Stranger6667/css-inline) crate.
 library;
 
 import 'dart:ffi';
@@ -5,52 +10,62 @@ import 'dart:ffi';
 import 'package:css_inline_dart/src/rust_bindings.g.dart' as bindings;
 import 'package:ffi/ffi.dart';
 
-/// Inlines CSS from style/link tags into style attributes.
-/// Returns the resulting HTML as a String.
-/// Throws an exception if inlining fails.
-Future<String> inlineCss({required String html}) async {
-  return inlineCssSync(html: html);
-}
+export 'package:css_inline_dart/src/inline_options.dart'
+    show CssInlineException, InlineOptions;
 
-/// Synchronous version of [inlineCss].
-String inlineCssSync({required String html}) {
-  final htmlPtr = html.toNativeUtf8();
-  try {
-    final resultPtr = bindings.inline_css(htmlPtr.cast<Char>());
-    if (resultPtr == nullptr) {
-      throw Exception('CSS Inlining failed');
-    }
-    final result = resultPtr.cast<Utf8>().toDartString();
-    bindings.free_string(resultPtr);
-    return result;
-  } finally {
-    malloc.free(htmlPtr);
-  }
-}
+import 'package:css_inline_dart/src/inline_options.dart';
 
-/// Inlines a specific CSS string into an HTML fragment.
-/// Useful for partial templates where you provide the CSS separately.
-Future<String> inlineFragment({required String html, required String css}) async {
-  return inlineFragmentSync(html: html, css: css);
-}
-
-/// Synchronous version of [inlineFragment].
-String inlineFragmentSync({required String html, required String css}) {
-  final htmlPtr = html.toNativeUtf8();
-  final cssPtr = css.toNativeUtf8();
-  try {
-    final resultPtr = bindings.inline_fragment(
-      htmlPtr.cast<Char>(),
-      cssPtr.cast<Char>(),
+/// Inlines the CSS a document carries in its own `style` and `link` tags.
+///
+/// Throws [CssInlineException] if the HTML or the options are rejected.
+String inlineDocument(String html, {InlineOptions options = const InlineOptions()}) {
+  return using((arena) {
+    final result = bindings.css_inline_document(
+      html.toNativeUtf8(allocator: arena).cast<Char>(),
+      options.toJson().toNativeUtf8(allocator: arena).cast<Char>(),
     );
-    if (resultPtr == nullptr) {
-      throw Exception('Fragment Inlining failed');
-    }
-    final result = resultPtr.cast<Utf8>().toDartString();
-    bindings.free_string(resultPtr);
-    return result;
+    return _take(result);
+  });
+}
+
+/// Inlines [css] into [html], which is treated as a fragment rather than a
+/// whole document.
+///
+/// Throws [CssInlineException] if the HTML, the CSS or the options are
+/// rejected.
+String inlineFragment(
+  String html,
+  String css, {
+  InlineOptions options = const InlineOptions(),
+}) {
+  return using((arena) {
+    final result = bindings.css_inline_fragment(
+      html.toNativeUtf8(allocator: arena).cast<Char>(),
+      css.toNativeUtf8(allocator: arena).cast<Char>(),
+      options.toJson().toNativeUtf8(allocator: arena).cast<Char>(),
+    );
+    return _take(result);
+  });
+}
+
+/// Whether this build can fetch stylesheets that `link` tags point at.
+///
+/// False unless the consuming package opted in, because the HTTP stack it needs
+/// costs every binary that ships without using it.
+bool get supportsRemoteStylesheets =>
+    bindings.css_inline_supports_remote_stylesheets() != 0;
+
+/// The string behind [result], freeing it, or the reason there is none.
+String _take(Pointer<Char> result) {
+  if (result == nullptr) {
+    final error = bindings.css_inline_last_error();
+    throw CssInlineException(
+      error == nullptr ? 'inlining failed' : error.cast<Utf8>().toDartString(),
+    );
+  }
+  try {
+    return result.cast<Utf8>().toDartString();
   } finally {
-    malloc.free(htmlPtr);
-    malloc.free(cssPtr);
+    bindings.css_inline_free_string(result);
   }
 }
